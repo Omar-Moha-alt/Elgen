@@ -1,4 +1,4 @@
-import { Events } from 'discord.js';
+import { Events, AuditLogEvent } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { getReactionRoleMessage, deleteReactionRoleMessage } from '../services/reactionRoleService.js';
@@ -14,6 +14,7 @@ export default {
     try {
       if (!message.guild) return;
 
+      // تنظيف داتا الـ Reaction Roles لو كانت الرسالة خاصة برتبة تفاعلية
       try {
         const reactionRoleData = await getReactionRoleMessage(message.client, message.guild.id, message.id);
         if (reactionRoleData) {
@@ -45,10 +46,34 @@ export default {
 
       if (message.author?.bot) return;
 
+      // البحث في الـ Audit Logs لمعرفة مين اللي مسح الرسالة
+      let deletedBy = 'صاحب الرسالة بنفسه (أو غير معروف)';
+      try {
+        const fetchedLogs = await message.guild.fetchAuditLogs({
+          limit: 1,
+          type: AuditLogEvent.MessageDelete,
+        });
+        const deletionLog = fetchedLogs.entries.first();
+
+        // التأكد من إن السجل يخص نفس القناة ونفس الشخص وفي وقت قريب (أقل من 5 ثواني)
+        if (
+          deletionLog &&
+          deletionLog.target.id === message.author.id &&
+          deletionLog.extra.channel.id === message.channel.id &&
+          Date.now() - deletionLog.createdTimestamp < 5000
+        ) {
+          deletedBy = deletionLog.executor ? `${deletionLog.executor.toString()} (${deletionLog.executor.tag})` : 'غير معروف';
+        }
+      } catch (auditError) {
+        // يحدث هذا لو البوت لا يملك صلاحية View Audit Log
+        logger.warn(`Could not fetch audit logs for message deletion in guild ${message.guild.id}:`, auditError.message);
+      }
+
       const metaLines = [
         formatLogLine('Channel', message.channel ? `${message.channel.name} ${message.channel.toString()}` : 'Unknown'),
         formatLogLine('Message ID', `\`${message.id}\``),
         formatLogLine('Message author', message.author ? message.author.toString() : 'Unknown'),
+        formatLogLine('Deleted by', deletedBy),
         formatLogLine('Message created', `<t:${Math.floor(message.createdTimestamp / 1000)}:R>`),
       ];
 
