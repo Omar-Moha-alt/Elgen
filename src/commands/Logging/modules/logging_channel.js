@@ -5,13 +5,13 @@ import { logger } from '../../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
 
 export default {
-  async execute(interaction, config, client) {
+  async execute(interaction) {
     try {
       const memberPermissions = new PermissionsBitField(interaction.member.permissions);
       if (!memberPermissions.has(PermissionsBitField.Flags.ManageGuild)) {
         return await replyUserError(interaction, {
           type: ErrorTypes.PERMISSION,
-          message: 'You need **Manage Server** permissions to configure logging channels.',
+          message: 'You need **Manage Server** permissions.',
         });
       }
 
@@ -20,7 +20,7 @@ export default {
       const destination = interaction.options.getString('destination');
       const channel = interaction.options.getChannel('channel');
 
-      await setLogChannel(client, interaction.guildId, destination, channel ? channel.id : null);
+      await setLogChannel(interaction.client, interaction.guildId, destination, channel ? channel.id : null);
 
       const message = channel
         ? `✅ Log channel for **${destination}** updated to ${channel}.`
