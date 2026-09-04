@@ -14,7 +14,7 @@ export default {
     try {
       if (!message.guild) return;
 
-      // تنظيف داتا الـ Reaction Roles لو كانت الرسالة خاصة برتبة تفاعلية
+      // تنظيف بيانات الـ Reaction Roles
       try {
         const reactionRoleData = await getReactionRoleMessage(message.client, message.guild.id, message.id);
         if (reactionRoleData) {
@@ -46,26 +46,32 @@ export default {
 
       if (message.author?.bot) return;
 
-      // البحث في الـ Audit Logs لمعرفة مين اللي مسح الرسالة
-      let deletedBy = 'صاحب الرسالة بنفسه (أو غير معروف)';
+      // جلب Audit Logs لمعرفة إذا كان هناك إداري مسح الرسالة
+      let deletedBy = message.author ? `${message.author.toString()} (صاحب الرسالة)` : 'غير معروف';
+
       try {
+        // ننتظر 1 ثانية بسيطة لضمان تسجيل ديسكورد للحدث في Audit Logs
+        await new Promise((res) => setTimeout(res, 1000));
+
         const fetchedLogs = await message.guild.fetchAuditLogs({
           limit: 1,
           type: AuditLogEvent.MessageDelete,
         });
         const deletionLog = fetchedLogs.entries.first();
 
-        // التأكد من إن السجل يخص نفس القناة ونفس الشخص وفي وقت قريب (أقل من 5 ثواني)
-        if (
-          deletionLog &&
-          deletionLog.target.id === message.author.id &&
-          deletionLog.extra.channel.id === message.channel.id &&
-          Date.now() - deletionLog.createdTimestamp < 5000
-        ) {
-          deletedBy = deletionLog.executor ? `${deletionLog.executor.toString()} (${deletionLog.executor.tag})` : 'غير معروف';
+        if (deletionLog) {
+          const { executor, target, createdTimestamp, extra } = deletionLog;
+          
+          // إذا كان الحدث يخص نفس صاحب الرسالة ونفس القناة وتم خلال آخر 5 ثوانٍ
+          if (
+            target?.id === message.author?.id &&
+            extra?.channel?.id === message.channel.id &&
+            Date.now() - createdTimestamp < 5000
+          ) {
+            deletedBy = `${executor.toString()} (${executor.tag})`;
+          }
         }
       } catch (auditError) {
-        // يحدث هذا لو البوت لا يملك صلاحية View Audit Log
         logger.warn(`Could not fetch audit logs for message deletion in guild ${message.guild.id}:`, auditError.message);
       }
 
