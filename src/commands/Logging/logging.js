@@ -6,6 +6,7 @@ import dashboard from './modules/logging_dashboard.js';
 import channel from './modules/logging_channel.js';
 
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+
 export default {
     data: new SlashCommandBuilder()
         .setName('logging')
@@ -27,7 +28,16 @@ export default {
                         .setDescription('Which log destination to configure.')
                         .setRequired(true)
                         .addChoices(
-                            { name: 'Audit (moderation, messages, members…)', value: 'audit' },
+                            { name: 'Ban Logs', value: 'ban' },
+                            { name: 'Kick Logs', value: 'kick' },
+                            { name: 'Timeout Logs', value: 'timeout' },
+                            { name: 'Join & Leave Logs', value: 'join_leave' },
+                            { name: 'Messages Logs', value: 'messages' },
+                            { name: 'Voice Logs', value: 'voices' },
+                            { name: 'Roles Logs', value: 'roles' },
+                            { name: 'Nicknames Logs', value: 'nicknames' },
+                            { name: 'Rooms Logs', value: 'rooms' },
+                            { name: 'Audit (General)', value: 'audit' },
                             { name: 'Applications', value: 'applications' },
                             { name: 'Reports', value: 'reports' },
                         ),
