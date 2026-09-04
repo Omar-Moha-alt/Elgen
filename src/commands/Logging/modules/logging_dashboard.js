@@ -12,8 +12,8 @@ import {
 } from '../../../utils/logging/loggingUi.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
-
 import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+
 export function getCategoryStatus(enabledEvents, category, auditEnabled) {
   if (!auditEnabled) return false;
   const events = enabledEvents || {};
@@ -179,8 +179,13 @@ export default {
   prefixOnly: false,
   async execute(interaction, config, client) {
     try {
-      if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
-        return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need **Manage Server** permissions to view the logging dashboard.' });
+      // التحقق الآمن من الصلاحيات لمنع انهيار الأمر
+      const memberPermissions = new PermissionsBitField(interaction.member.permissions);
+      if (!memberPermissions.has(PermissionsBitField.Flags.ManageGuild)) {
+        return await replyUserError(interaction, {
+          type: ErrorTypes.PERMISSION,
+          message: 'You need **Manage Server** permissions to view the logging dashboard.',
+        });
       }
 
       await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
@@ -188,7 +193,10 @@ export default {
       await InteractionHelper.safeEditReply(interaction, { embeds: [embed], components });
     } catch (error) {
       logger.error('logging_dashboard error:', error);
-      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Failed to load the logging dashboard.' });
+      await replyUserError(interaction, {
+        type: ErrorTypes.UNKNOWN,
+        message: 'Failed to load the logging dashboard.',
+      });
     }
   },
 };
