@@ -25,7 +25,7 @@ export default {
       const message = channel
         ? `✅ Log channel for **${destination}** updated to ${channel}.`
         : `🗑️ Log channel for **${destination}** cleared.`;
-
+      
       await InteractionHelper.safeEditReply(interaction, { content: message });
     } catch (error) {
       logger.error('logging_channel error:', error);
