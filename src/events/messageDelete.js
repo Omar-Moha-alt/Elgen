@@ -46,33 +46,37 @@ export default {
 
       if (message.author?.bot) return;
 
-      // جلب Audit Logs لمعرفة إذا كان هناك إداري مسح الرسالة
+      // البحث عن منفذ الحذف عبر Audit Logs مع إعادة المحاولة
       let deletedBy = message.author ? `${message.author.toString()} (صاحب الرسالة)` : 'غير معروف';
 
       try {
-        // ننتظر 1 ثانية بسيطة لضمان تسجيل ديسكورد للحدث في Audit Logs
-        await new Promise((res) => setTimeout(res, 1000));
-
-        const fetchedLogs = await message.guild.fetchAuditLogs({
-          limit: 1,
-          type: AuditLogEvent.MessageDelete,
-        });
-        const deletionLog = fetchedLogs.entries.first();
-
-        if (deletionLog) {
-          const { executor, target, createdTimestamp, extra } = deletionLog;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          await new Promise((res) => setTimeout(res, 400)); // انتظار 400 مللي ثانية
           
-          // إذا كان الحدث يخص نفس صاحب الرسالة ونفس القناة وتم خلال آخر 5 ثوانٍ
-          if (
-            target?.id === message.author?.id &&
-            extra?.channel?.id === message.channel.id &&
-            Date.now() - createdTimestamp < 5000
-          ) {
-            deletedBy = `${executor.toString()} (${executor.tag})`;
+          const fetchedLogs = await message.guild.fetchAuditLogs({
+            limit: 1,
+            type: AuditLogEvent.MessageDelete,
+          });
+          
+          const deletionLog = fetchedLogs.entries.first();
+
+          if (deletionLog) {
+            const { executor, target, createdTimestamp, extra } = deletionLog;
+            
+            // مطابقة السجل مع الشخص والقناة وفي نطاق 8 ثواني
+            if (
+              target?.id === message.author?.id &&
+              extra?.channel?.id === message.channel.id &&
+              Date.now() - createdTimestamp < 8000
+            ) {
+              deletedBy = `${executor.toString()} (${executor.tag})`;
+              break; // وجدنا النتيجة بنجاح، اخرج من الحلقة
+            }
           }
         }
       } catch (auditError) {
         logger.warn(`Could not fetch audit logs for message deletion in guild ${message.guild.id}:`, auditError.message);
+        deletedBy = 'تعذر الجلب (تحقق من صلاحية View Audit Log)';
       }
 
       const metaLines = [
