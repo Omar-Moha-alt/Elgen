@@ -11,7 +11,21 @@ import {
   splitComparisonFields,
 } from '../utils/logging/logEmbeds.js';
 
-const LOG_DESTINATIONS = ['audit', 'applications', 'reports'];
+// القنوات المخصصة بناءً على صورة سيرفرك
+const LOG_DESTINATIONS = [
+  'ban',
+  'kick',
+  'timeout',
+  'join_leave',
+  'messages',
+  'voices',
+  'roles',
+  'nicknames',
+  'rooms',
+  'audit', // القناة الافتراضية لأي حدث آخر
+  'applications',
+  'reports',
+];
 
 const EVENT_TYPES = {
   MODERATION_BAN: 'moderation.ban',
@@ -42,6 +56,14 @@ const EVENT_TYPES = {
   MEMBER_LEAVE: 'member.leave',
   MEMBER_NAME_CHANGE: 'member.namechange',
 
+  VOICE_JOIN: 'voice.join',
+  VOICE_LEAVE: 'voice.leave',
+  VOICE_MOVE: 'voice.move',
+
+  CHANNEL_CREATE: 'channel.create',
+  CHANNEL_DELETE: 'channel.delete',
+  CHANNEL_UPDATE: 'channel.update',
+
   REACTION_ROLE_ADD: 'reactionrole.add',
   REACTION_ROLE_REMOVE: 'reactionrole.remove',
   REACTION_ROLE_CREATE: 'reactionrole.create',
@@ -60,6 +82,42 @@ const EVENT_TYPES = {
   APPLICATION_REVIEW: 'application.review',
 
   REPORT_FILE: 'report.file',
+};
+
+// خريطة توجيه كل حدث أو قسم للقناة المناسبة
+const EVENT_DESTINATION_MAP = {
+  'moderation.ban': 'ban',
+  'moderation.unban': 'ban',
+  'moderation.kick': 'kick',
+  'moderation.timeout': 'timeout',
+  'moderation.untimeout': 'timeout',
+  'moderation.mute': 'timeout',
+  
+  'message.delete': 'messages',
+  'message.edit': 'messages',
+  'message.bulkdelete': 'messages',
+
+  'member.join': 'join_leave',
+  'member.leave': 'join_leave',
+  'member.namechange': 'nicknames',
+
+  'role.create': 'roles',
+  'role.delete': 'roles',
+  'role.update': 'roles',
+  'role.give': 'roles',
+  'role.remove': 'roles',
+
+  'voice.join': 'voices',
+  'voice.leave': 'voices',
+  'voice.move': 'voices',
+
+  'channel.create': 'rooms',
+  'channel.delete': 'rooms',
+  'channel.update': 'rooms',
+
+  'application.submit': 'applications',
+  'application.review': 'applications',
+  'report.file': 'reports',
 };
 
 const EVENT_COLORS = {
@@ -142,20 +200,16 @@ const EVENT_ICONS = {
   'report.file': '🚨',
 };
 
-const CATEGORY_DESTINATION = {
-  application: 'applications',
-  report: 'reports',
-};
-
 export function resolveLogChannel(config, destination) {
   const channels = config?.logging?.channels || {};
+  
+  // 1. القناة المحددة للحدث المباشر
   if (destination && channels[destination]) {
     return channels[destination];
   }
-  if (destination === 'audit') {
-    return channels.audit ?? config?.logging?.channelId ?? config?.logChannelId ?? null;
-  }
-  return channels[destination] ?? null;
+
+  // 2. القناة العامة في حال عدم تعيين القناة المخصصة
+  return channels.audit ?? config?.logging?.channelId ?? config?.logChannelId ?? null;
 }
 
 export function getIgnoreList(config) {
@@ -190,8 +244,7 @@ function getLogChannelForEvent(config, eventType, overrideChannelId = null) {
     return overrideChannelId;
   }
 
-  const category = eventType?.split('.')[0];
-  const destination = CATEGORY_DESTINATION[category] || 'audit';
+  const destination = EVENT_DESTINATION_MAP[eventType] || 'audit';
   return resolveLogChannel(config, destination);
 }
 
@@ -355,7 +408,18 @@ export async function getLoggingStatus(client, guildId) {
 
   return {
     enabled: logging.enabled || false,
-    channels: logging.channels || { audit: null, applications: null, reports: null },
+    channels: logging.channels || {
+      ban: null,
+      kick: null,
+      timeout: null,
+      join_leave: null,
+      messages: null,
+      voices: null,
+      roles: null,
+      nicknames: null,
+      rooms: null,
+      audit: null,
+    },
     channelId: logging.channels?.audit ?? null,
     ignore: getIgnoreList(config),
     enabledEvents: logging.enabledEvents || {},
