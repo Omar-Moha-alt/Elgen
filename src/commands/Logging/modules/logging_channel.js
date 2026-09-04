@@ -22,19 +22,9 @@ export default {
 
       await setLogChannel(interaction.client, interaction.guildId, destination, channel ? channel.id : null);
 
-      const destinationNames = {
-        server: 'Server',
-        message: 'Message',
-        member: 'Member',
-        voice: 'Voice',
-        moderation: 'Moderation',
-      };
-
-      const readableDestination = destinationNames[destination] || destination;
-
       const message = channel
-        ? `✅ Log channel for **${readableDestination}** updated to ${channel}.`
-        : `🗑️ Log channel for **${readableDestination}** cleared.`;
+        ? `✅ Log channel updated to ${channel}.`
+        : `🗑️ Log channel cleared.`;
       
       await InteractionHelper.safeEditReply(interaction, { content: message });
     } catch (error) {
