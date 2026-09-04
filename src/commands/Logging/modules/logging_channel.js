@@ -7,7 +7,6 @@ import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
 export default {
   async execute(interaction, config, client) {
     try {
-      // إصلاح فحص الصلاحيات بحجم Bitfield مضمون
       const memberPermissions = new PermissionsBitField(interaction.member.permissions);
       if (!memberPermissions.has(PermissionsBitField.Flags.ManageGuild)) {
         return await replyUserError(interaction, {
