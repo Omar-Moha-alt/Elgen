@@ -4,6 +4,21 @@ import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
 
+const DESTINATION_NAMES = {
+  ban: 'Ban Logs',
+  kick: 'Kick Logs',
+  timeout: 'Timeout Logs',
+  join_leave: 'Join & Leave Logs',
+  messages: 'Messages Logs',
+  voices: 'Voice Logs',
+  roles: 'Roles Logs',
+  nicknames: 'Nicknames Logs',
+  rooms: 'Rooms Logs',
+  audit: 'Audit (General)',
+  applications: 'Applications',
+  reports: 'Reports',
+};
+
 export default {
   async execute(interaction) {
     try {
@@ -22,9 +37,11 @@ export default {
 
       await setLogChannel(interaction.client, interaction.guildId, destination, channel ? channel.id : null);
 
+      const destName = DESTINATION_NAMES[destination] || destination;
+
       const message = channel
-        ? `✅ Log channel updated to ${channel}.`
-        : `🗑️ Log channel cleared.`;
+        ? `✅ **${destName}** logs will be sent to ${channel}.`
+        : `🗑️ **${destName}** logs have been cleared.`;
       
       await InteractionHelper.safeEditReply(interaction, { content: message });
     } catch (error) {
