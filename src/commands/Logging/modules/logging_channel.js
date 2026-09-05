@@ -39,9 +39,11 @@ export default {
 
       const destName = DESTINATION_NAMES[destination] || destination;
 
-      const message = channel
-        ? `✅ **${destName}** logs will be sent to ${channel}.`
-        : `🗑️ **${destName}** logs have been cleared.`;
+    const destination = interaction.options.getString('destination');
+const channel = interaction.options.getChannel('channel');
+
+// استخدمنا طريقة آمنة تجيب الاسم أو تحول الكلمة لأول حرف كبيتل لو مش موجودة
+const destName = DESTINATION_NAMES[destination] || destination.replace('_', ' ').toUpperCase();
       
       await InteractionHelper.safeEditReply(interaction, { content: message });
     } catch (error) {
