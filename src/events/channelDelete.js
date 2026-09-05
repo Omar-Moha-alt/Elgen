@@ -6,6 +6,7 @@ import {
     saveTicketData
 } from '../utils/database.js';
 import { getServerCounters, saveServerCounters } from '../services/serverstatsService.js';
+import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 
 export default {
@@ -26,14 +27,33 @@ export default {
             }
         }
 
-if (channel.type !== 2 && channel.type !== 4) {
+        const guildId = channel.guild.id;
+
+        // إرسال لوق حذف الروم عبر نظام الـ Logging
+        try {
+            await logEvent({
+                client,
+                guildId,
+                eventType: EVENT_TYPES.CHANNEL_DELETE,
+                data: {
+                    title: '🗑️ Channel Deleted',
+                    description: `Channel **${channel.name}** has been deleted.`,
+                    fields: [
+                        { name: 'Name', value: channel.name, inline: true },
+                        { name: 'ID', value: channel.id, inline: true },
+                        { name: 'Type', value: String(channel.type), inline: true }
+                    ]
+                }
+            });
+        } catch (logErr) {
+            logger.error(`Failed to log channel deletion for ${channel.id}:`, logErr);
+        }
+
+        if (channel.type !== 2 && channel.type !== 4) {
             return;
         }
 
-        const guildId = channel.guild.id;
-
         try {
-            
             const counters = await getServerCounters(client, guildId);
             const orphanedCounter = counters.find(c => c.channelId === channel.id);
             
@@ -87,7 +107,7 @@ if (channel.type !== 2 && channel.type !== 4) {
                 try {
                     await client.db.set(`guild:${guildId}:jointocreate`, config);
                     logger.info(`Disabled Join to Create for guild ${guildId} due to category deletion`);
-                } catch (error) {
+                } catch (error)  {
                     logger.error(`Failed to disable Join to Create for guild ${guildId}:`, error);
                 }
             }
